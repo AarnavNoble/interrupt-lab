@@ -369,9 +369,22 @@ describe('edge case: short noise is not an interrupt', () => {
 });
 
 describe('reset', () => {
-  it('clears everything and stops the voice', () => {
+  it('clears the conversation and stops the voice', () => {
     const { state, effects } = run([{ type: 'RESET', at: 5000 }], botMidSecondSentence().state);
-    expect(state).toEqual(initialState());
+    expect(state).toEqual({ ...initialState(), nextId: 2 });
     expect(effects).toEqual([{ type: 'stopSpeaking' }]);
+  });
+
+  it('does not let a late chunk from the old conversation into the new one', () => {
+    const { state, transitions } = run(
+      [
+        { type: 'RESET', at: 5000 },
+        { type: 'START', at: 5100 }, // asks for turn 2
+        { type: 'BOT_CHUNK', at: 5200, turnId: 1, text: 'Old opener.' },
+      ],
+      botMidSecondSentence().state,
+    );
+    expect(transitions.at(-1)).toBe('stale_chunk_dropped');
+    expect(state.awaitingReplyId).toBe(2);
   });
 });

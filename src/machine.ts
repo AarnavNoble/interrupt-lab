@@ -97,7 +97,8 @@ export function reduce(state: State, event: Event): Result {
     case 'START':
       return onStart(state);
     case 'RESET':
-      return { state: initialState(), effects: [{ type: 'stopSpeaking' }], transition: 'reset' };
+      // Keep counting ids so late events from the old conversation still look stale.
+      return { state: { ...initialState(), nextId: state.nextId }, effects: [{ type: 'stopSpeaking' }], transition: 'reset' };
     case 'BOT_CHUNK':
       return onBotChunk(state, event.turnId, event.text, event.at);
     case 'BOT_DONE':
