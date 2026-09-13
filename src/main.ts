@@ -4,6 +4,7 @@ import './style.css';
 import { Effect, Event, Phase, State, Turn, Unstamped, deliveredText, initialState, reduce, undeliveredText } from './machine';
 import { createMic, micSupported } from './mic';
 import { respond, streamReply } from './responder';
+import { SCENARIOS, playScenario } from './scenarios';
 import { canSpeakAloud, createBrowserVoice, createSilentVoice } from './voice';
 
 const el = <T extends HTMLElement = HTMLElement>(id: string) => document.getElementById(id) as T;
@@ -76,8 +77,22 @@ function runEffect(effect: Effect): void {
 
 // ---------- controls ----------
 
+let stopScenario = () => {};
+
 startButton.addEventListener('click', () => {
+  stopScenario();
   send({ type: state.started ? 'RESET' : 'START' });
+});
+
+el('scenarios').innerHTML = SCENARIOS.map((s, i) => `<button data-index="${i}">${s.name}</button>`).join('');
+el('scenarios').addEventListener('click', (e) => {
+  const index = (e.target as HTMLElement).dataset.index;
+  if (index === undefined) return;
+  const scenario = SCENARIOS[Number(index)];
+  stopScenario();
+  el('scenario-about').textContent = scenario.about;
+  log.length = 0; // so the log reads as just this scenario
+  stopScenario = playScenario(scenario, send);
 });
 
 el('type-form').addEventListener('submit', (e) => {

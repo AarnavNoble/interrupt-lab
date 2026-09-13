@@ -38,6 +38,7 @@ button.primary { background: var(--accent); border-color: var(--accent); color: 
 
 .toggle { display: inline-flex; gap: 6px; align-items: center; color: var(--muted); }
 #type-form input { flex: 1; min-width: 200px; font: inherit; padding: 8px 12px; border: 1px solid var(--line); border-radius: 8px; }
+.scenario-about { margin: 10px 0 0; color: var(--muted); }
 .notice { margin: 0; padding: 8px 12px; border-radius: 8px; background: var(--warn-soft); color: var(--warn); }
 
 .grid { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(0, 1fr); gap: 16px; align-items: start; }
