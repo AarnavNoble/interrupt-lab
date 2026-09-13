@@ -7,3 +7,8 @@ channel = "stable-24_05"
 [[ports]]
 localPort = 5173
 externalPort = 80
+
+[deployment]
+deploymentTarget = "static"
+build = ["sh", "-c", "npm i && npm run build"]
+publicDir = "dist"
