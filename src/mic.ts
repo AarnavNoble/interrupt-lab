@@ -46,8 +46,8 @@ export function createMic(send: Send, onBlocked: (message: string) => void): Mic
     send({ type: 'USER_SPEECH_END' });
   };
 
-  // One recognition session per utterance. In continuous mode Chrome fires
-  // speechstart only once per session, which would hide every later start time.
+  // One recognition session per utterance. In continuous mode a session spans many
+  // utterances, so speechstart would not reliably mark when each one began.
   const listen = () => {
     const r = new Recognizer!();
     r.continuous = false;
