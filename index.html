@@ -6,7 +6,44 @@
     <title>Interrupt Lab</title>
   </head>
   <body>
-    <h1>Interrupt Lab</h1>
+    <main class="app">
+      <header class="top">
+        <h1>Interrupt Lab</h1>
+        <p class="tagline">A voice agent you can cut off mid-sentence, with its state machine on display.</p>
+      </header>
+
+      <section class="card controls">
+        <div class="row">
+          <button id="start" class="primary">Start conversation</button>
+          <label class="toggle"><input type="checkbox" id="mic" /> <span id="mic-label">Microphone</span></label>
+          <label class="toggle"><input type="checkbox" id="aloud" checked /> <span>Speak aloud</span></label>
+        </div>
+        <form id="type-form" class="row">
+          <input id="typed" placeholder="Type what you'd say, e.g. tell me a story" autocomplete="off" />
+          <button type="submit" id="send">Interrupt</button>
+        </form>
+        <p id="notice" class="notice" hidden></p>
+      </section>
+
+      <div class="grid">
+        <section class="card">
+          <h2>Transcript</h2>
+          <div id="transcript" class="transcript"></div>
+        </section>
+        <div class="side">
+          <section class="card">
+            <h2>State</h2>
+            <ol id="phases" class="phases"></ol>
+            <p id="phase-help" class="phase-help"></p>
+            <dl id="facts" class="facts"></dl>
+          </section>
+          <section class="card">
+            <h2>Event log</h2>
+            <ol id="log" class="log"></ol>
+          </section>
+        </div>
+      </div>
+    </main>
     <script type="module" src="/src/main.ts"></script>
   </body>
 </html>
