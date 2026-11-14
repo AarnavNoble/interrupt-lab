@@ -1,6 +1,6 @@
 # Interrupt Lab design notes
 
-This is the document to study before talking about the project. Read it top to bottom, then step through `src/machine.test.ts` with it open.
+How the interrupt handling works: the state machine, every transition, and the edge-case test that covers each one. `src/machine.test.ts` follows the same order.
 
 ## The idea in one paragraph
 
@@ -161,7 +161,7 @@ Each has a `describe('edge case: ...')` block in `machine.test.ts`.
 
 **A related bug the test also covers:** calling `speechSynthesis.cancel()` fires a late end (or error) event for the sentence that was cut. If the app handled it normally, it would mark that sentence as fully spoken, or start speaking the next one. The turn is no longer active, so `TTS_END` is dropped as stale.
 
-**Honest limit:** if a voice sends no word boundary events, `heardChars` stays 0 and the partial sentence counts as unheard. I chose to under-report, because claiming the user heard something they did not is worse than repeating a few words.
+**Honest limit:** a word boundary fires as a word *starts*, so `heardChars` only moves up to the start of the current word. The word being spoken when the user cuts in counts as unheard. If a voice sends no boundary events at all, `heardChars` stays 0 and the whole partial sentence counts as unheard. I chose to under-report, because claiming the user heard something they did not is worse than repeating a few words.
 
 ### 3. The opener is never replayed after an interrupt
 
@@ -198,10 +198,10 @@ The mic adapter runs one recognition session per utterance for this reason: in c
 
 ## Why the reducer is pure
 
-1. **Testable without a browser.** Speech APIs cannot run in CI, and even in a browser their timing is not repeatable. Pure events in, plain data out: every test is a list of events and some `expect`s. 24 tests run in milliseconds.
+1. **Testable without a browser.** Speech APIs cannot run in CI, and even in a browser their timing is not repeatable. Pure events in, plain data out: every test is a list of events and some `expect`s. The whole suite runs in milliseconds.
 2. **Orderings are explicit.** The hard bugs here are about "what if B arrives before A". With a reducer I can write that order down directly. With callbacks scattered through the UI, it is hidden in timing.
 3. **One place for every decision.** Adapters are thin enough to read in a minute. If behavior is wrong, the cause is in `machine.ts` or the event log shows the adapter sent the wrong event.
-4. **Replayable.** The scripted scenarios are just timed events. A logged sequence from a real bug could be pasted into a test the same way. This is the same idea as replaying scripted calls in CI.
+4. **Replayable.** The scripted scenarios are just timed events. A logged sequence from a real bug could be pasted into a test the same way.
 5. **No hidden time.** The reducer never calls `Date.now()` or `setTimeout`. Time arrives as `at` on events, and timers are effects.
 
 `main.ts` adds one piece of plumbing: events sent while another event is being handled are queued, because the silent voice sends its first progress event synchronously from inside `speak`. The reducer always sees one event at a time in the order they were sent.
@@ -224,7 +224,11 @@ Run "Interrupt mid-sentence" and follow the log.
 
 - **Echo.** Without headphones the mic hears the bot and interrupts it. Browser speech recognition opens the mic itself, so the page cannot feed it an echo cancelled stream. A real system would use acoustic echo cancellation on a `getUserMedia` stream or compare transcripts against what the bot is saying.
 - **Browser recognition is a black box.** Its speech start and end timing is coarse and it only exists in Chrome and Edge.
-- **A cough during `processing` cancels the pending reply.** The user turn is reopened and then closed with the same text, so a new reply is requested. Nothing is lost, but it costs a regeneration. A noise gate in `processing` would fix it.
+- **A cough during `processing` cancels the pending reply.** The user turn is reopened and then closed with the same text, so a new reply is requested. Nothing is lost, but it costs a regeneration. A noise gate in `processing` would fix it. (Before the greeting there is no user turn to reopen, so speech there is ignored and the greeting still plays.)
+- **Typing while speaking.** In `user_speaking`, typed text joins the turn before the words still being recognized, so "tell me" (spoken) plus "a joke" (typed) is saved as "a joke tell me". The recognizer resends the whole utterance on every result, so typed text cannot simply be appended to it; a fix would keep typed and spoken text in separate, timestamped pieces.
+- **A typed interrupt during overlap closes the turn.** Words the recognizer delivers after that, in the same session, have no open utterance and are dropped.
+- **A real synthesis error counts the sentence as heard.** `onerror` is mostly Chrome reporting a cancel, which the reducer drops as stale, but a genuine failure also sends `TTS_END`.
+- **An empty reply would leave the machine in `processing`.** The rule based responder always produces text; a real LLM integration should treat `BOT_DONE` with no chunks as "go to idle".
 - **Word level progress depends on the voice** sending boundary events (see edge case 2).
 
 ## What I would do next
@@ -236,7 +240,7 @@ Run "Interrupt mid-sentence" and follow the log.
 5. **Replay tests from real sessions.** Export the event log as JSON and load it as a test fixture, so any bug seen in the app becomes a regression test.
 6. **Property based tests.** Generate random event sequences and check invariants, for example: `awaitingReplyId` is set only in `processing`, at most one bot turn is live, and delivered text is always a prefix of the generated text.
 
-## Likely questions, short answers
+## Design questions
 
 - **Why not XState?** The machine is five phases and fits in one file. A plain reducer is easier to read line by line, has no library semantics to explain, and is trivially testable. If it grew parallel or nested states, I would reconsider.
 - **Why is the transition a string?** It is for humans: the event log and test assertions. Behavior never branches on it.
