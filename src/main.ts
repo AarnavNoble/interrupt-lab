@@ -1,7 +1,7 @@
 // The app shell: owns the current state, feeds events to the reducer, runs the
 // effects it returns, and draws the page. All decisions live in machine.ts.
 import './style.css';
-import { Effect, Event, Phase, State, Turn, Unstamped, deliveredText, initialState, reduce, undeliveredText } from './machine';
+import { Effect, Event, NOISE_GATE_MS, Phase, State, Turn, Unstamped, deliveredText, initialState, reduce, undeliveredText } from './machine';
 import { createMic, micSupported } from './mic';
 import { respond, streamReply } from './responder';
 import { SCENARIOS, playScenario } from './scenarios';
@@ -84,7 +84,7 @@ startButton.addEventListener('click', () => {
   send({ type: state.started ? 'RESET' : 'START' });
 });
 
-el('scenarios').innerHTML = SCENARIOS.map((s, i) => `<button data-index="${i}">${s.name}</button>`).join('');
+el('scenarios').innerHTML = SCENARIOS.map((s, i) => `<button data-index="${i}"${i === 0 ? ' class="primary"' : ''}>${s.name}</button>`).join('');
 el('scenarios').addEventListener('click', (e) => {
   const index = (e.target as HTMLElement).dataset.index;
   if (index === undefined) return;
@@ -168,7 +168,7 @@ function render(): void {
       const move = entry.from === entry.to ? entry.to : `${entry.from} → ${entry.to}`;
       return `<li><time>${seconds(entry.at)}</time><div>${escape(entry.event)}<br><span class="${quiet ? 'stale' : 'transition'}">${entry.transition}</span> · ${move}</div></li>`;
     })
-    .join('');
+    .join('') || '<li class="empty">Events appear here as they happen.</li>';
 }
 
 function renderTranscript(): void {
@@ -192,7 +192,7 @@ function renderTurn(turn: Turn, next: Turn | undefined): string {
   let footer = '';
   if (turn.status === 'interrupted' && next?.kind === 'user') {
     const latency = turn.stoppedAt! - next.startedAt;
-    const reaction = latency > 0 ? ` Voice stopped ${latency}ms after you started talking.` : '';
+    const reaction = latency > 0 ? ` Stop sent ${latency}ms after you started talking (the noise gate is ${NOISE_GATE_MS}ms).` : '';
     footer = `<footer>Interrupted at ${seconds(next.startedAt)}.${reaction} Struck text was never heard.</footer>`;
   }
   return `<article class="turn bot"><header>Bot <time>${seconds(turn.startedAt)}</time></header><p>${escape(deliveredText(turn))} <span class="${restClass}">${escape(undeliveredText(turn))}</span></p>${footer}</article>`;
@@ -204,7 +204,7 @@ function lastReaction(): string {
     const next = state.turns[i + 1];
     // Typed interrupts stop the voice instantly, so only voice interrupts have a reaction time.
     if (turn.kind === 'bot' && turn.status === 'interrupted' && next.kind === 'user' && turn.stoppedAt! > next.startedAt) {
-      return `${turn.stoppedAt! - next.startedAt}ms from speech start to voice stop`;
+      return `${turn.stoppedAt! - next.startedAt}ms from speech start to stop (gate ${NOISE_GATE_MS}ms)`;
     }
   }
   return 'no voice interrupts yet';

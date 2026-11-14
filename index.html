@@ -4,31 +4,40 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Interrupt Lab</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link href="https://fonts.googleapis.com/css2?family=Geist+Mono:wght@400;500&family=Mona+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
   </head>
   <body>
+    <nav class="nav">
+      <a class="name" href="https://aarnavnoble.netlify.app">Aarnav Noble</a>
+      <a href="https://aarnavnoble.netlify.app">Portfolio &#8599;</a>
+    </nav>
     <main class="app">
       <header class="top">
+        <p class="label"><span class="sq"></span>Voice agent demo / no backend, no API key</p>
         <h1>Interrupt Lab</h1>
         <p class="tagline">A voice agent you can cut off mid-sentence, with its state machine on display.</p>
       </header>
 
+      <section class="card">
+        <h2>Try it first: replay a scenario (no mic needed)</h2>
+        <div id="scenarios" class="row"></div>
+        <p id="scenario-about" class="scenario-about">Start with Interrupt mid-sentence. Each scenario fakes your side of the call on a timer.</p>
+      </section>
+
       <section class="card controls">
+        <h2>Or talk to it yourself</h2>
         <div class="row">
-          <button id="start" class="primary">Start conversation</button>
+          <button id="start">Start conversation</button>
           <label class="toggle"><input type="checkbox" id="mic" /> <span id="mic-label">Microphone</span></label>
           <label class="toggle"><input type="checkbox" id="aloud" checked /> <span>Speak aloud</span></label>
         </div>
         <form id="type-form" class="row">
-          <input id="typed" placeholder="Type what you'd say, e.g. tell me a story" autocomplete="off" />
+          <input id="typed" placeholder="Type to interrupt, e.g. tell me a story" autocomplete="off" />
           <button type="submit" id="send">Interrupt</button>
         </form>
         <p id="notice" class="notice" hidden></p>
-      </section>
-
-      <section class="card">
-        <h2>Replay a scripted scenario</h2>
-        <div id="scenarios" class="row"></div>
-        <p id="scenario-about" class="scenario-about">No mic needed. Each scenario fakes your side of the conversation on a timer.</p>
       </section>
 
       <div class="grid">
