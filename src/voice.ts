@@ -8,29 +8,38 @@ export interface Voice {
   stop(): void;
 }
 
-export const canSpeakAloud = typeof window !== 'undefined' && 'speechSynthesis' in window;
+export const canSpeakAloud = typeof window !== 'undefined' && !!window.speechSynthesis;
 
 // The real browser voice. Progress comes from word boundary events, which some
 // voices never send. Then the partial sentence counts as unheard, which is the safe side.
 export function createBrowserVoice(send: Send): Voice {
   const synth = window.speechSynthesis;
+  // Chrome can garbage collect a speaking utterance and never fire onend, so hold on to it.
+  const playing = new Set<SpeechSynthesisUtterance>();
   return {
     speak(turnId, index, text) {
       const utterance = new SpeechSynthesisUtterance(text);
+      playing.add(utterance);
       const voice = pickVoice(synth.getVoices());
       if (voice) utterance.voice = voice;
       utterance.onboundary = (e) => {
         if (e.name !== 'word') return;
-        const wordLength = e.charLength || text.slice(e.charIndex).search(/\s|$/);
-        send({ type: 'TTS_PROGRESS', turnId, index, chars: e.charIndex + wordLength });
+        // A boundary fires as a word starts, so everything before it has been heard.
+        send({ type: 'TTS_PROGRESS', turnId, index, chars: e.charIndex });
       };
-      // Chrome reports a cancelled utterance as an error. The reducer drops it as stale.
-      utterance.onend = () => send({ type: 'TTS_END', turnId, index });
-      utterance.onerror = () => send({ type: 'TTS_END', turnId, index });
+      const finished = () => {
+        playing.delete(utterance);
+        send({ type: 'TTS_END', turnId, index });
+      };
+      utterance.onend = finished;
+      // Chrome reports a cancelled utterance as an error, which the reducer drops as stale.
+      // Known gap: a real synthesis failure also lands here and counts the sentence as heard.
+      utterance.onerror = finished;
       synth.speak(utterance);
     },
     stop() {
       synth.cancel();
+      playing.clear();
     },
   };
 }
@@ -58,7 +67,7 @@ export function createSilentVoice(send: Send): Voice {
           return;
         }
         const word = words[next++];
-        send({ type: 'TTS_PROGRESS', turnId, index, chars: word.index! + word[0].length });
+        send({ type: 'TTS_PROGRESS', turnId, index, chars: word.index! }); // same rule as the browser voice
         timer = setTimeout(step, (word[0].length + 1) * MS_PER_CHAR);
       };
       step();
