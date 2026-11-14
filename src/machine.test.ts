@@ -194,6 +194,17 @@ describe('edge case: the opener is never replayed', () => {
     expect(transitions).toEqual(['typed_turn', 'start_ignored_already_started']);
     expect(effects.filter((e) => e.type === 'generate')).toHaveLength(1);
   });
+  it('still plays the greeting if a cough lands while it is being generated', () => {
+    const { state, transitions } = run([
+      { type: 'START', at: 0 },
+      { type: 'USER_SPEECH_START', at: 200 },
+      { type: 'USER_SPEECH_END', at: 250 },
+      { type: 'BOT_CHUNK', at: 500, turnId: 1, text: 'Hi there.' },
+    ]);
+    expect(transitions).toEqual(['opener_requested', 'speech_before_greeting_ignored', 'speech_end_ignored', 'reply_started']);
+    expect(state.phase).toBe('bot_speaking');
+    expect(bots(state)).toHaveLength(1);
+  });
 });
 
 describe('edge case: interrupt time comes from speech start', () => {

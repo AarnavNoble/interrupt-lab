@@ -207,6 +207,9 @@ function onSpeechStart(state: State, at: number): Result {
     case 'idle':
       return { state: openUserTurn({ ...state, utterance }, at), effects: [], transition: 'user_turn_began' };
     case 'processing':
+      // Before the greeting has played there is no user turn to resume. Cancelling here
+      // would drop the greeting for good, so the sound is ignored and the greeting plays.
+      if (lastTurn(state)?.kind !== 'user') return nothing(state, 'speech_before_greeting_ignored');
       // The user kept talking before the reply arrived. Forget that reply and keep listening.
       return {
         state: openUserTurn({ ...state, utterance, awaitingReplyId: null }, at),
