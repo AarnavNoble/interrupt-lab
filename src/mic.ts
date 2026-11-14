@@ -68,7 +68,8 @@ export function createMic(send: Send, onBlocked: (message: string) => void): Mic
     };
     r.onend = () => {
       speechEnded();
-      if (listening) listen();
+      // Only the current session restarts. A stopped one ending late must not start a second.
+      if (listening && recognition === r) listen();
     };
     recognition = r;
     r.start();
