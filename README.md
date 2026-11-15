@@ -2,6 +2,8 @@
 
 A voice agent you can interrupt in the browser, with its state machine made visible.
 
+**Live demo:** https://interrupt-lab.netlify.app (Chrome recommended; click "Interrupt mid-sentence", no mic needed)
+
 The bot reads a multi-sentence reply out loud, one streamed sentence at a time. You can cut it off by speaking, typing, or pressing Interrupt. It stops right away, keeps only the words you actually heard, and replies to what you said. A phase strip, an event log, and a transcript show every decision as it happens.
 
 ## Why I built it
